@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Impresoras</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS para Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Estilos -->
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        input, select, button, textarea {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            background: #f8f9fa;
+        }
+        .tab.active {
+            background: white;
+            border-bottom: 2px solid white;
+            margin-bottom: -2px;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .success {
+            color: green;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .quantity-control button {
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+        }
+        .chart-container {
+            margin-top: 30px;
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginPage" class="login-container">
+        <h2>Inicio de Sesión</h2>
+        <div class="form-group">
+            <label>Correo Electrónico</label>
+            <input type="email" id="email" placeholder="correo@ejemplo.com" style="width: 100%;">
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="password" placeholder="********" style="width: 100%;">
+        </div>
+        <button onclick="login()" style="width: 100%;">Iniciar Sesión</button>
+        <div id="loginError" class="error" style="margin-top: 10px;"></div>
+    </div>
+
+    <div id="mainApp" class="container" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>Sistema de Gestión de Impresoras</h1>
+            <button onclick="logout()" class="btn-danger">Cerrar Sesión</button>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab(1)">Formulario Impresoras</div>
+            <div class="tab" onclick="showTab(2)">Impresoras/Toner/Departamentos</div>
+            <div class="tab" onclick="showTab(3)">Cantidad Toner</div>
+            <div class="tab" onclick="showTab(4)">Reportes</div>
+        </div>
+
+        <!-- Pestaña 1: Formulario Impresoras -->
+        <div id="tab1" class="tab-content active">
+            <h2>Formulario de Registro de Impresoras</h2>
+            <form id="formImpresora">
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="id" readonly style="background: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>Impresora:</label>
+                    <select id="impresora" required>
+                        <option value="">Seleccione una impresora</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Toner:</label>
+                    <select id="toner" required onchange="cargarCantidadActual()">
+                        <option value="">Seleccione un toner</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cantidad Actual:</label>
+                    <input type="number" id="cantidadActual" readonly style="background: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>Precio de Toner:</label>
+                    <input type="number" id="precio" required step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Departamento:</label>
+                    <select id="departamento" required>
+                        <option value="">Seleccione un departamento</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha:</label>
+                    <input type="date" id="fecha" required>
+                </div>
+                <button type="button" onclick="aceptarFormulario()" class="btn-success">Aceptar</button>
+                <div id="formError" class="error"></div>
+                <div id="formSuccess" class="success"></div>
+            </form>
+        </div>
+
+        <!-- Pestaña 2: Gestión de Listas -->
+        <div id="tab2" class="tab-content">
+            <h2>Gestión de Catálogos</h2>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button onclick="mostrarGestion('impresoras')">Gestionar Impresoras</button>
+                <button onclick="mostrarGestion('toners')">Gestionar Toners</button>
+                <button onclick="mostrarGestion('departamentos')">Gestionar Departamentos</button>
+            </div>
+            
+            <div id="gestionImpresoras" style="display: none;">
+                <h3>Gestión de Impresoras</h3>
+                <div class="form-group">
+                    <label>Nueva Impresora:</label>
+                    <input type="text" id="nuevaImpresora" placeholder="Nombre de la impresora">
+                    <button onclick="agregarItem('impresoras', document.getElementById('nuevaImpresora').value)">Agregar</button>
+                </div>
+                <div id="listaImpresoras"></div>
+            </div>
+            
+            <div id="gestionToners" style="display: none;">
+                <h3>Gestión de Toners</h3>
+                <div class="form-group">
+                    <label>Nuevo Toner:</label>
+                    <input type="text" id="nuevoToner" placeholder="Nombre del toner">
+                    <button onclick="agregarItem('toners', document.getElementById('nuevoToner').value)">Agregar</button>
+                </div>
+                <div id="listaToners"></div>
+            </div>
+            
+            <div id="gestionDepartamentos" style="display: none;">
+                <h3>Gestión de Departamentos</h3>
+                <div class="form-group">
+                    <label>Nuevo Departamento:</label>
+                    <input type="text" id="nuevoDepartamento" placeholder="Nombre del departamento">
+                    <button onclick="agregarItem('departamentos', document.getElementById('nuevoDepartamento').value)">Agregar</button>
+                </div>
+                <div id="listaDepartamentos"></div>
+            </div>
+        </div>
+
+        <!-- Pestaña 3: Cantidad Toner -->
+        <div id="tab3" class="tab-content">
+            <h2>Control de Cantidad de Toner</h2>
+            <div class="form-group">
+                <label>Toner:</label>
+                <select id="tonerCantidad" onchange="cargarCantidadToner()">
+                    <option value="">Seleccione un toner</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Cantidad Actual:</label>
+                <div class="quantity-control">
+                    <button type="button" onclick="ajustarCantidad(-1)">-</button>
+                    <input type="number" id="cantidadToner" value="0" readonly style="width: 80px; text-align: center;">
+                    <button type="button" onclick="ajustarCantidad(1)">+</button>
+                </div>
+            </div>
+            <button onclick="guardarCantidadToner()" class="btn-success">Guardar Cambios</button>
+            <div id="tonerError" class="error"></div>
+            <div id="tonerSuccess" class="success"></div>
+        </div>
+
+        <!-- Pestaña 4: Reportes -->
+        <div id="tab4" class="tab-content">
+            <h2>Reportes y Estadísticas</h2>
+            <div style="margin-bottom: 20px;">
+                <button onclick="exportarExcel()" class="btn-success">Exportar a Excel</button>
+                <button onclick="exportarJSON()" style="background: #17a2b8;">Exportar a JSON</button>
+                <button onclick="document.getElementById('importFile').click()" style="background: #ffc107; color: black;">Importar JSON</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importarJSON(event)">
+            </div>
+            
+            <h3>Filtros</h3>
+            <div class="filters">
+                <div>
+                    <label>Departamento:</label>
+                    <select id="filtroDepartamento" onchange="actualizarGrafico()">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Impresora:</label>
+                    <select id="filtroImpresora" onchange="actualizarGrafico()">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Toner:</label>
+                    <select id="filtroToner" onchange="actualizarGrafico()">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Fecha Desde:</label>
+                    <input type="date" id="filtroFechaDesde" onchange="actualizarGrafico()">
+                </div>
+                <div>
+                    <label>Fecha Hasta:</label>
+                    <input type="date" id="filtroFechaHasta" onchange="actualizarGrafico()">
+                </div>
+                <div>
+                    <label>Condición Precio:</label>
+                    <select id="filtroPrecioCondicion">
+                        <option value="">Sin filtro</option>
+                        <option value="=">Igual a</option>
+                        <option value=">">Mayor que</option>
+                        <option value="<">Menor que</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Valor Precio:</label>
+                    <input type="number" id="filtroPrecioValor" onchange="actualizarGrafico()">
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="reporteChart"></canvas>
+            </div>
+            
+            <h3>Registros</h3>
+            <div id="registrosTable" style="overflow-x: auto;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCOThPg4aLZGm5gaXDK3taT-OfCZtI6zS4",
+            authDomain: "impresoras-66b61.firebaseapp.com",
+            databaseURL: "https://impresoras-66b61-default-rtdb.firebaseio.com",
+            projectId: "impresoras-66b61",
+            storageBucket: "impresoras-66b61.firebasestorage.app",
+            messagingSenderId: "782120345048",
+            appId: "1:782120345048:web:45ba532c20a5845ea026ad"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Variables globales
+        let miChart = null;
+
+        // Autenticación
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                inicializarDatos();
+            } else {
+                document.getElementById('loginPage').style.display = 'block';
+                document.getElementById('mainApp').style.display = 'none';
+            }
+        });
+
+        function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .catch((error) => {
+                    document.getElementById('loginError').textContent = 'Error: ' + error.message;
+                });
+        }
+
+        function logout() {
+            auth.signOut();
+        }
+
+        // Inicialización de datos
+        function inicializarDatos() {
+            // Verificar y crear estructuras iniciales
+            database.ref('catalogos').once('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    const datosIniciales = {
+                        impresoras: ['HP LaserJet', 'Epson WorkForce', 'Canon imageCLASS'],
+                        toners: {
+                            'HP LaserJet': 10,
+                            'Epson WorkForce': 5,
+                            'Canon imageCLASS': 8
+                        },
+                        departamentos: ['Ventas', 'Marketing', 'IT', 'RRHH', 'Finanzas']
+                    };
+                    database.ref('catalogos').set(datosIniciales);
+                }
+            });
+
+            // Obtener último ID
+            database.ref('registros').once('value', (snapshot) => {
+                let maxId = 0;
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        const id = child.val().id;
+                        if (id > maxId) maxId = id;
+                    });
+                }
+                document.getElementById('id').value = maxId + 1;
+            });
+
+            // Inicializar fecha actual
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('fecha').value = hoy;
+
+            cargarListas();
+        }
+
+        // Función para mostrar pestañas
+        function showTab(numero) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            document.querySelectorAll('.tab')[numero - 1].classList.add('active');
+            document.getElementById(`tab${numero}`).classList.add('active');
+            
+            if (numero === 4) {
+                cargarRegistros();
+                cargarFiltros();
+            }
+        }
+
+        // Gestión de listas
+        function mostrarGestion(tipo) {
+            document.getElementById('gestionImpresoras').style.display = 'none';
+            document.getElementById('gestionToners').style.display = 'none';
+            document.getElementById('gestionDepartamentos').style.display = 'none';
+            
+            document.getElementById(`gestion${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`).style.display = 'block';
+            cargarListaItems(tipo);
+        }
+
+        function cargarListaItems(tipo) {
+            database.ref(`catalogos/${tipo}`).once('value', (snapshot) => {
+                let html = '';
+                const items = snapshot.val() || [];
+                
+                if (tipo === 'toners') {
+                    Object.keys(items).forEach((item, index) => {
+                        html += `<div class="list-item">
+                            <span>${item}</span>
+                            <div>
+                                <button onclick="editarItem('${tipo}', '${item}')">Editar</button>
+                                <button class="btn-danger" onclick="eliminarItem('${tipo}', '${item}')">Eliminar</button>
+                            </div>
+                        </div>`;
+                    });
+                } else {
+                    items.forEach((item, index) => {
+                        html += `<div class="list-item">
+                            <span>${item}</span>
+                            <div>
+                                <button onclick="editarItem('${tipo}', '${item}')">Editar</button>
+                                <button class="btn-danger" onclick="eliminarItem('${tipo}', '${item}')">Eliminar</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+                
+                document.getElementById(`lista${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`).innerHTML = html;
+            });
+        }
+
+        function agregarItem(tipo, valor) {
+            if (!valor.trim()) {
+                alert('El valor no puede estar vacío');
+                return;
+            }
+
+            database.ref(`catalogos/${tipo}`).once('value', (snapshot) => {
+                let items = snapshot.val() || [];
+                
+                if (tipo === 'toners') {
+                    if (!items[valor]) {
+                        items[valor] = 0;
+                    }
+                } else {
+                    if (Array.isArray(items)) {
+                        if (!items.includes(valor)) {
+                            items.push(valor);
+                        }
+                    } else {
+                        items = [valor];
+                    }
+                }
+                
+                database.ref(`catalogos/${tipo}`).set(items).then(() => {
+                    document.getElementById(`nuevo${tipo.charAt(0).toUpperCase() + tipo.slice(1, -1)}`).value = '';
+                    cargarListaItems(tipo);
+                    cargarListas();
+                });
+            });
+        }
+
+        function editarItem(tipo, valorAntiguo) {
+            const nuevoValor = prompt('Editar valor:', valorAntiguo);
+            if (nuevoValor && nuevoValor !== valorAntiguo) {
+                database.ref(`catalogos/${tipo}`).once('value', (snapshot) => {
+                    let items = snapshot.val();
+                    
+                    if (tipo === 'toners') {
+                        const cantidad = items[valorAntiguo];
+                        delete items[valorAntiguo];
+                        items[nuevoValor] = cantidad;
+                    } else {
+                        const index = items.indexOf(valorAntiguo);
+                        items[index] = nuevoValor;
+                    }
+                    
+                    database.ref(`catalogos/${tipo}`).set(items).then(() => {
+                        cargarListaItems(tipo);
+                        cargarListas();
+                    });
+                });
+            }
+        }
+
+        function eliminarItem(tipo, valor) {
+            if (confirm(`¿Está seguro de eliminar ${valor}?`)) {
+                database.ref(`catalogos/${tipo}`).once('value', (snapshot) => {
+                    let items = snapshot.val();
+                    
+                    if (tipo === 'toners') {
+                        delete items[valor];
+                    } else {
+                        const index = items.indexOf(valor);
+                        items.splice(index, 1);
+                    }
+                    
+                    database.ref(`catalogos/${tipo}`).set(items).then(() => {
+                        cargarListaItems(tipo);
+                        cargarListas();
+                    });
+                });
+            }
+        }
+
+        // Cargar listas en formularios
+        function cargarListas() {
+            // Cargar impresoras
+            database.ref('catalogos/impresoras').once('value', (snapshot) => {
+                const impresoras = snapshot.val() || [];
+                let html = '<option value="">Seleccione una impresora</option>';
+                impresoras.forEach(imp => {
+                    html += `<option value="${imp}">${imp}</option>`;
+                });
+                document.getElementById('impresora').innerHTML = html;
+                document.getElementById('filtroImpresora').innerHTML = '<option value="">Todos</option>' + html.substring(39);
+            });
+
+            // Cargar toners
+            database.ref('catalogos/toners').once('value', (snapshot) => {
+                const toners = snapshot.val() || {};
+                let html = '<option value="">Seleccione un toner</option>';
+                let htmlCantidad = '<option value="">Seleccione un toner</option>';
+                let htmlFiltro = '<option value="">Todos</option>';
+                
+                Object.keys(toners).forEach(toner => {
+                    html += `<option value="${toner}">${toner}</option>`;
+                    htmlCantidad += `<option value="${toner}">${toner}</option>`;
+                    htmlFiltro += `<option value="${toner}">${toner}</option>`;
+                });
+                
+                document.getElementById('toner').innerHTML = html;
+                document.getElementById('tonerCantidad').innerHTML = htmlCantidad;
+                document.getElementById('filtroToner').innerHTML = htmlFiltro;
+            });
+
+            // Cargar departamentos
+            database.ref('catalogos/departamentos').once('value', (snapshot) => {
+                const deptos = snapshot.val() || [];
+                let html = '<option value="">Seleccione un departamento</option>';
+                let htmlFiltro = '<option value="">Todos</option>';
+                deptos.forEach(depto => {
+                    html += `<option value="${depto}">${depto}</option>`;
+                    htmlFiltro += `<option value="${depto}">${depto}</option>`;
+                });
+                document.getElementById('departamento').innerHTML = html;
+                document.getElementById('filtroDepartamento').innerHTML = htmlFiltro;
+            });
+        }
+
+        // Cargar cantidad actual del toner seleccionado
+        function cargarCantidadActual() {
+            const toner = document.getElementById('toner').value;
+            if (toner) {
+                database.ref('catalogos/toners/' + toner).once('value', (snapshot) => {
+                    document.getElementById('cantidadActual').value = snapshot.val() || 0;
+                });
+            }
+        }
+
+        // Aceptar formulario
+        function aceptarFormulario() {
+            const id = document.getElementById('id').value;
+            const impresora = document.getElementById('impresora').value;
+            const toner = document.getElementById('toner').value;
+            const precio = document.getElementById('precio').value;
+            const departamento = document.getElementById('departamento').value;
+            const fecha = document.getElementById('fecha').value;
+
+            if (!impresora || !toner || !precio || !departamento || !fecha) {
+                document.getElementById('formError').textContent = 'Todos los campos son obligatorios';
+                return;
+            }
+
+            database.ref('catalogos/toners/' + toner).once('value', (snapshot) => {
+                const cantidadActual = snapshot.val() || 0;
+                
+                if (cantidadActual <= 0) {
+                    document.getElementById('formError').textContent = 'No hay suficientes toner';
+                    return;
+                }
+
+                // Restar 1 a la cantidad
+                database.ref('catalogos/toners/' + toner).set(cantidadActual - 1).then(() => {
+                    // Guardar registro
+                    const registro = {
+                        id: parseInt(id),
+                        impresora,
+                        toner,
+                        precio: parseFloat(precio),
+                        departamento,
+                        fecha,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    database.ref('registros/' + id).set(registro).then(() => {
+                        document.getElementById('formSuccess').textContent = 'Registro guardado exitosamente';
+                        document.getElementById('formError').textContent = '';
+                        
+                        // Actualizar ID
+                        database.ref('registros').once('value', (snap) => {
+                            let maxId = 0;
+                            snap.forEach((child) => {
+                                const idReg = child.val().id;
+                                if (idReg > maxId) maxId = idReg;
+                            });
+                            document.getElementById('id').value = maxId + 1;
+                        });
+                        
+                        // Limpiar campos
+                        document.getElementById('impresora').value = '';
+                        document.getElementById('toner').value = '';
+                        document.getElementById('cantidadActual').value = '';
+                        document.getElementById('precio').value = '';
+                        document.getElementById('departamento').value = '';
+                        
+                        setTimeout(() => {
+                            document.getElementById('formSuccess').textContent = '';
+                        }, 3000);
+                    });
+                });
+            });
+        }
+
+        // Control de cantidad de toner
+        function cargarCantidadToner() {
+            const toner = document.getElementById('tonerCantidad').value;
+            if (toner) {
+                database.ref('catalogos/toners/' + toner).once('value', (snapshot) => {
+                    document.getElementById('cantidadToner').value = snapshot.val() || 0;
+                });
+            }
+        }
+
+        function ajustarCantidad(valor) {
+            const cantidad = parseInt(document.getElementById('cantidadToner').value) || 0;
+            const nuevaCantidad = Math.max(0, cantidad + valor);
+            document.getElementById('cantidadToner').value = nuevaCantidad;
+        }
+
+        function guardarCantidadToner() {
+            const toner = document.getElementById('tonerCantidad').value;
+            const cantidad = parseInt(document.getElementById('cantidadToner').value) || 0;
+            
+            if (!toner) {
+                document.getElementById('tonerError').textContent = 'Seleccione un toner';
+                return;
+            }
+
+            database.ref('catalogos/toners/' + toner).set(cantidad).then(() => {
+                document.getElementById('tonerSuccess').textContent = 'Cantidad actualizada exitosamente';
+                document.getElementById('tonerError').textContent = '';
+                cargarListas();
+                
+                setTimeout(() => {
+                    document.getElementById('tonerSuccess').textContent = '';
+                }, 3000);
+            });
+        }
+
+        // Reportes
+        function cargarRegistros() {
+            database.ref('registros').once('value', (snapshot) => {
+                let html = '<table><tr><th>ID</th><th>Impresora</th><th>Toner</th><th>Precio</th><th>Departamento</th><th>Fecha</th></tr>';
+                
+                snapshot.forEach((child) => {
+                    const reg = child.val();
+                    html += `<tr>
+                        <td>${reg.id}</td>
+                        <td>${reg.impresora}</td>
+                        <td>${reg.toner}</td>
+                        <td>$${reg.precio}</td>
+                        <td>${reg.departamento}</td>
+                        <td>${reg.fecha}</td>
+                    </tr>`;
+                });
+                
+                html += '</table>';
+                document.getElementById('registrosTable').innerHTML = html;
+            });
+        }
+
+        function cargarFiltros() {
+            actualizarGrafico();
+        }
+
+        function actualizarGrafico() {
+            database.ref('registros').once('value', (snapshot) => {
+                let registros = [];
+                snapshot.forEach((child) => {
+                    registros.push(child.val());
+                });
+
+                // Aplicar filtros
+                const depto = document.getElementById('filtroDepartamento').value;
+                const impresora = document.getElementById('filtroImpresora').value;
+                const toner = document.getElementById('filtroToner').value;
+                const fechaDesde = document.getElementById('filtroFechaDesde').value;
+                const fechaHasta = document.getElementById('filtroFechaHasta').value;
+                const condPrecio = document.getElementById('filtroPrecioCondicion').value;
+                const valorPrecio = parseFloat(document.getElementById('filtroPrecioValor').value);
+
+                registros = registros.filter(reg => {
+                    if (depto && reg.departamento !== depto) return false;
+                    if (impresora && reg.impresora !== impresora) return false;
+                    if (toner && reg.toner !== toner) return false;
+                    if (fechaDesde && reg.fecha < fechaDesde) return false;
+                    if (fechaHasta && reg.fecha > fechaHasta) return false;
+                    if (condPrecio && !isNaN(valorPrecio)) {
+                        if (condPrecio === '=' && reg.precio !== valorPrecio) return false;
+                        if (condPrecio === '>' && reg.precio <= valorPrecio) return false;
+                        if (condPrecio === '<' && reg.precio >= valorPrecio) return false;
+                    }
+                    return true;
+                });
+
+                // Agrupar por toner para el gráfico
+                const grupos = {};
+                registros.forEach(reg => {
+                    if (!grupos[reg.toner]) {
+                        grupos[reg.toner] = {
+                            count: 0,
+                            total: 0
+                        };
+                    }
+                    grupos[reg.toner].count++;
+                    grupos[reg.toner].total += reg.precio;
+                });
+
+                const labels = Object.keys(grupos);
+                const datos = labels.map(l => grupos[l].count);
+                const precios = labels.map(l => grupos[l].total / grupos[l].count);
+
+                // Crear gráfico
+                const ctx = document.getElementById('reporteChart').getContext('2d');
+                
+                if (miChart) {
+                    miChart.destroy();
+                }
+
+                miChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Cantidad de Registros',
+                            data: datos,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        }, {
+                            label: 'Precio Promedio',
+                            data: precios,
+                            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Cantidad'
+                                }
+                            },
+                            y1: {
+                                beginAtZero: true,
+                                position: 'right',
+                                grid: {
+                                    drawOnChartArea: false
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Precio ($)'
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        // Exportar/Importar
+        function exportarExcel() {
+            database.ref().once('value', (snapshot) => {
+                const data = snapshot.val();
+                const registros = [];
+                
+                if (data.registros) {
+                    Object.values(data.registros).forEach(reg => {
+                        registros.push(reg);
+                    });
+                }
+
+                const ws = XLSX.utils.json_to_sheet(registros);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+                XLSX.writeFile(wb, 'registros_impresoras.xlsx');
+            });
+        }
+
+        function exportarJSON() {
+            database.ref().once('value', (snapshot) => {
+                const data = snapshot.val();
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'backup_impresoras.json';
+                a.click();
+            });
+        }
+
+        function importarJSON(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (confirm('¿Está seguro de importar estos datos? Se sobrescribirán los datos actuales.')) {
+                            database.ref().set(data).then(() => {
+                                alert('Datos importados exitosamente');
+                                cargarListas();
+                                cargarRegistros();
+                            });
+                        }
+                    } catch (error) {
+                        alert('Error al importar el archivo: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+    </script>
+</body>
+</html>
