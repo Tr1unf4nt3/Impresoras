@@ -160,6 +160,12 @@
             margin-top: 30px;
             height: 400px;
         }
+        .management-section {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -193,7 +199,7 @@
         <!-- Pestaña 1: Formulario Impresoras -->
         <div id="tab1" class="tab-content active">
             <h2>Formulario de Registro de Impresoras</h2>
-            <form id="formImpresora">
+            <form id="formImpresora" onsubmit="return false;">
                 <div class="form-group">
                     <label>ID:</label>
                     <input type="number" id="id" readonly style="background: #f5f5f5;">
@@ -243,32 +249,38 @@
                 <button onclick="mostrarGestion('departamentos')">Gestionar Departamentos</button>
             </div>
             
-            <div id="gestionImpresoras" style="display: none;">
+            <div id="gestionImpresoras" class="management-section" style="display: none;">
                 <h3>Gestión de Impresoras</h3>
                 <div class="form-group">
                     <label>Nueva Impresora:</label>
-                    <input type="text" id="nuevaImpresora" placeholder="Nombre de la impresora">
-                    <button onclick="agregarItem('impresoras', document.getElementById('nuevaImpresora').value)">Agregar</button>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="nuevaImpresora" placeholder="Nombre de la impresora" style="flex: 1;">
+                        <button onclick="agregarItem('impresoras')">Agregar</button>
+                    </div>
                 </div>
                 <div id="listaImpresoras"></div>
             </div>
             
-            <div id="gestionToners" style="display: none;">
+            <div id="gestionToners" class="management-section" style="display: none;">
                 <h3>Gestión de Toners</h3>
                 <div class="form-group">
                     <label>Nuevo Toner:</label>
-                    <input type="text" id="nuevoToner" placeholder="Nombre del toner">
-                    <button onclick="agregarItem('toners', document.getElementById('nuevoToner').value)">Agregar</button>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="nuevoToner" placeholder="Nombre del toner" style="flex: 1;">
+                        <button onclick="agregarItem('toners')">Agregar</button>
+                    </div>
                 </div>
                 <div id="listaToners"></div>
             </div>
             
-            <div id="gestionDepartamentos" style="display: none;">
+            <div id="gestionDepartamentos" class="management-section" style="display: none;">
                 <h3>Gestión de Departamentos</h3>
                 <div class="form-group">
                     <label>Nuevo Departamento:</label>
-                    <input type="text" id="nuevoDepartamento" placeholder="Nombre del departamento">
-                    <button onclick="agregarItem('departamentos', document.getElementById('nuevoDepartamento').value)">Agregar</button>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="nuevoDepartamento" placeholder="Nombre del departamento" style="flex: 1;">
+                        <button onclick="agregarItem('departamentos')">Agregar</button>
+                    </div>
                 </div>
                 <div id="listaDepartamentos"></div>
             </div>
@@ -336,7 +348,7 @@
                 </div>
                 <div>
                     <label>Condición Precio:</label>
-                    <select id="filtroPrecioCondicion">
+                    <select id="filtroPrecioCondicion" onchange="actualizarGrafico()">
                         <option value="">Sin filtro</option>
                         <option value="=">Igual a</option>
                         <option value=">">Mayor que</option>
@@ -393,6 +405,11 @@
         function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                document.getElementById('loginError').textContent = 'Por favor ingrese email y contraseña';
+                return;
+            }
             
             auth.signInWithEmailAndPassword(email, password)
                 .catch((error) => {
@@ -471,58 +488,86 @@
                 const items = snapshot.val() || [];
                 
                 if (tipo === 'toners') {
-                    Object.keys(items).forEach((item, index) => {
+                    // Los toners son un objeto con cantidades
+                    Object.keys(items).forEach((item) => {
                         html += `<div class="list-item">
-                            <span>${item}</span>
+                            <span>${item} (Stock: ${items[item]})</span>
                             <div>
-                                <button onclick="editarItem('${tipo}', '${item}')">Editar</button>
-                                <button class="btn-danger" onclick="eliminarItem('${tipo}', '${item}')">Eliminar</button>
+                                <button onclick="editarItem('${tipo}', '${item.replace(/'/g, "\\'")}')">Editar</button>
+                                <button class="btn-danger" onclick="eliminarItem('${tipo}', '${item.replace(/'/g, "\\'")}')">Eliminar</button>
                             </div>
                         </div>`;
                     });
                 } else {
-                    items.forEach((item, index) => {
+                    // Impresoras y departamentos son arrays
+                    items.forEach((item) => {
                         html += `<div class="list-item">
                             <span>${item}</span>
                             <div>
-                                <button onclick="editarItem('${tipo}', '${item}')">Editar</button>
-                                <button class="btn-danger" onclick="eliminarItem('${tipo}', '${item}')">Eliminar</button>
+                                <button onclick="editarItem('${tipo}', '${item.replace(/'/g, "\\'")}')">Editar</button>
+                                <button class="btn-danger" onclick="eliminarItem('${tipo}', '${item.replace(/'/g, "\\'")}')">Eliminar</button>
                             </div>
                         </div>`;
                     });
                 }
                 
-                document.getElementById(`lista${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`).innerHTML = html;
+                const listaElement = document.getElementById(`lista${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+                if (listaElement) {
+                    listaElement.innerHTML = html;
+                }
             });
         }
 
-        function agregarItem(tipo, valor) {
-            if (!valor.trim()) {
+        function agregarItem(tipo) {
+            let inputId;
+            let valor;
+            
+            if (tipo === 'impresoras') {
+                inputId = 'nuevaImpresora';
+            } else if (tipo === 'toners') {
+                inputId = 'nuevoToner';
+            } else if (tipo === 'departamentos') {
+                inputId = 'nuevoDepartamento';
+            }
+            
+            valor = document.getElementById(inputId).value.trim();
+            
+            if (!valor) {
                 alert('El valor no puede estar vacío');
                 return;
             }
 
             database.ref(`catalogos/${tipo}`).once('value', (snapshot) => {
-                let items = snapshot.val() || [];
+                let items = snapshot.val() || {};
                 
                 if (tipo === 'toners') {
+                    // Para toners, es un objeto
                     if (!items[valor]) {
-                        items[valor] = 0;
+                        items[valor] = 0; // Stock inicial 0
+                    } else {
+                        alert('Este toner ya existe');
+                        return;
                     }
                 } else {
-                    if (Array.isArray(items)) {
-                        if (!items.includes(valor)) {
-                            items.push(valor);
-                        }
+                    // Para impresoras y departamentos, son arrays
+                    if (!Array.isArray(items)) {
+                        items = [];
+                    }
+                    if (!items.includes(valor)) {
+                        items.push(valor);
                     } else {
-                        items = [valor];
+                        alert('Este elemento ya existe');
+                        return;
                     }
                 }
                 
                 database.ref(`catalogos/${tipo}`).set(items).then(() => {
-                    document.getElementById(`nuevo${tipo.charAt(0).toUpperCase() + tipo.slice(1, -1)}`).value = '';
+                    document.getElementById(inputId).value = '';
                     cargarListaItems(tipo);
-                    cargarListas();
+                    cargarListas(); // Actualizar todos los selectores
+                }).catch((error) => {
+                    console.error('Error al guardar:', error);
+                    alert('Error al guardar: ' + error.message);
                 });
             });
         }
@@ -534,12 +579,16 @@
                     let items = snapshot.val();
                     
                     if (tipo === 'toners') {
+                        // Para toners, mantener la cantidad
                         const cantidad = items[valorAntiguo];
                         delete items[valorAntiguo];
                         items[nuevoValor] = cantidad;
                     } else {
+                        // Para arrays, reemplazar el elemento
                         const index = items.indexOf(valorAntiguo);
-                        items[index] = nuevoValor;
+                        if (index !== -1) {
+                            items[index] = nuevoValor;
+                        }
                     }
                     
                     database.ref(`catalogos/${tipo}`).set(items).then(() => {
@@ -559,7 +608,9 @@
                         delete items[valor];
                     } else {
                         const index = items.indexOf(valor);
-                        items.splice(index, 1);
+                        if (index !== -1) {
+                            items.splice(index, 1);
+                        }
                     }
                     
                     database.ref(`catalogos/${tipo}`).set(items).then(() => {
@@ -580,7 +631,14 @@
                     html += `<option value="${imp}">${imp}</option>`;
                 });
                 document.getElementById('impresora').innerHTML = html;
-                document.getElementById('filtroImpresora').innerHTML = '<option value="">Todos</option>' + html.substring(39);
+                
+                // Actualizar filtro de impresoras
+                let filtroHtml = '<option value="">Todos</option>';
+                impresoras.forEach(imp => {
+                    filtroHtml += `<option value="${imp}">${imp}</option>`;
+                });
+                const filtroImpresora = document.getElementById('filtroImpresora');
+                if (filtroImpresora) filtroImpresora.innerHTML = filtroHtml;
             });
 
             // Cargar toners
@@ -598,7 +656,9 @@
                 
                 document.getElementById('toner').innerHTML = html;
                 document.getElementById('tonerCantidad').innerHTML = htmlCantidad;
-                document.getElementById('filtroToner').innerHTML = htmlFiltro;
+                
+                const filtroToner = document.getElementById('filtroToner');
+                if (filtroToner) filtroToner.innerHTML = htmlFiltro;
             });
 
             // Cargar departamentos
@@ -611,7 +671,9 @@
                     htmlFiltro += `<option value="${depto}">${depto}</option>`;
                 });
                 document.getElementById('departamento').innerHTML = html;
-                document.getElementById('filtroDepartamento').innerHTML = htmlFiltro;
+                
+                const filtroDepartamento = document.getElementById('filtroDepartamento');
+                if (filtroDepartamento) filtroDepartamento.innerHTML = htmlFiltro;
             });
         }
 
@@ -622,6 +684,8 @@
                 database.ref('catalogos/toners/' + toner).once('value', (snapshot) => {
                     document.getElementById('cantidadActual').value = snapshot.val() || 0;
                 });
+            } else {
+                document.getElementById('cantidadActual').value = '';
             }
         }
 
@@ -681,6 +745,9 @@
                         document.getElementById('precio').value = '';
                         document.getElementById('departamento').value = '';
                         
+                        // Actualizar listas
+                        cargarListas();
+                        
                         setTimeout(() => {
                             document.getElementById('formSuccess').textContent = '';
                         }, 3000);
@@ -696,6 +763,8 @@
                 database.ref('catalogos/toners/' + toner).once('value', (snapshot) => {
                     document.getElementById('cantidadToner').value = snapshot.val() || 0;
                 });
+            } else {
+                document.getElementById('cantidadToner').value = 0;
             }
         }
 
@@ -718,6 +787,7 @@
                 document.getElementById('tonerSuccess').textContent = 'Cantidad actualizada exitosamente';
                 document.getElementById('tonerError').textContent = '';
                 cargarListas();
+                cargarCantidadActual();
                 
                 setTimeout(() => {
                     document.getElementById('tonerSuccess').textContent = '';
@@ -730,17 +800,21 @@
             database.ref('registros').once('value', (snapshot) => {
                 let html = '<table><tr><th>ID</th><th>Impresora</th><th>Toner</th><th>Precio</th><th>Departamento</th><th>Fecha</th></tr>';
                 
-                snapshot.forEach((child) => {
-                    const reg = child.val();
-                    html += `<tr>
-                        <td>${reg.id}</td>
-                        <td>${reg.impresora}</td>
-                        <td>${reg.toner}</td>
-                        <td>$${reg.precio}</td>
-                        <td>${reg.departamento}</td>
-                        <td>${reg.fecha}</td>
-                    </tr>`;
-                });
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        const reg = child.val();
+                        html += `<tr>
+                            <td>${reg.id}</td>
+                            <td>${reg.impresora}</td>
+                            <td>${reg.toner}</td>
+                            <td>$${reg.precio}</td>
+                            <td>${reg.departamento}</td>
+                            <td>${reg.fecha}</td>
+                        </tr>`;
+                    });
+                } else {
+                    html += '<tr><td colspan="6" style="text-align: center;">No hay registros</td></tr>';
+                }
                 
                 html += '</table>';
                 document.getElementById('registrosTable').innerHTML = html;
@@ -754,9 +828,11 @@
         function actualizarGrafico() {
             database.ref('registros').once('value', (snapshot) => {
                 let registros = [];
-                snapshot.forEach((child) => {
-                    registros.push(child.val());
-                });
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        registros.push(child.val());
+                    });
+                }
 
                 // Aplicar filtros
                 const depto = document.getElementById('filtroDepartamento').value;
@@ -796,7 +872,7 @@
 
                 const labels = Object.keys(grupos);
                 const datos = labels.map(l => grupos[l].count);
-                const precios = labels.map(l => grupos[l].total / grupos[l].count);
+                const precios = labels.map(l => grupos[l].count > 0 ? grupos[l].total / grupos[l].count : 0);
 
                 // Crear gráfico
                 const ctx = document.getElementById('reporteChart').getContext('2d');
@@ -808,17 +884,17 @@
                 miChart = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: labels,
+                        labels: labels.length > 0 ? labels : ['Sin datos'],
                         datasets: [{
                             label: 'Cantidad de Registros',
-                            data: datos,
+                            data: datos.length > 0 ? datos : [0],
                             backgroundColor: 'rgba(54, 162, 235, 0.5)',
                             borderColor: 'rgba(54, 162, 235, 1)',
                             borderWidth: 1,
                             yAxisID: 'y'
                         }, {
                             label: 'Precio Promedio',
-                            data: precios,
+                            data: precios.length > 0 ? precios : [0],
                             backgroundColor: 'rgba(255, 99, 132, 0.5)',
                             borderColor: 'rgba(255, 99, 132, 1)',
                             borderWidth: 1,
@@ -856,13 +932,12 @@
 
         // Exportar/Importar
         function exportarExcel() {
-            database.ref().once('value', (snapshot) => {
-                const data = snapshot.val();
+            database.ref('registros').once('value', (snapshot) => {
                 const registros = [];
                 
-                if (data.registros) {
-                    Object.values(data.registros).forEach(reg => {
-                        registros.push(reg);
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        registros.push(child.val());
                     });
                 }
 
@@ -883,6 +958,7 @@
                 a.href = url;
                 a.download = 'backup_impresoras.json';
                 a.click();
+                URL.revokeObjectURL(url);
             });
         }
 
@@ -898,6 +974,9 @@
                                 alert('Datos importados exitosamente');
                                 cargarListas();
                                 cargarRegistros();
+                                inicializarDatos();
+                            }).catch((error) => {
+                                alert('Error al importar: ' + error.message);
                             });
                         }
                     } catch (error) {
