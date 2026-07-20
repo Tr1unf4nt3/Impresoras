@@ -3,989 +3,478 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión de Impresoras</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS para Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Estilos -->
+    <title>Control de Tóners e Impresoras</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 20px;
-        }
-        .login-container {
-            max-width: 400px;
-            margin: 50px auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h2 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        input, select, button, textarea {
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        .btn-danger {
-            background: #dc3545;
-        }
-        .btn-danger:hover {
-            background: #c82333;
-        }
-        .btn-success {
-            background: #28a745;
-        }
-        .btn-success:hover {
-            background: #218838;
-        }
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid #ddd;
-            margin-bottom: 20px;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            border-radius: 5px 5px 0 0;
-            margin-right: 5px;
-            background: #f8f9fa;
-        }
-        .tab.active {
-            background: white;
-            border-bottom: 2px solid white;
-            margin-bottom: -2px;
-            font-weight: bold;
-        }
-        .tab-content {
-            display: none;
-            padding: 20px;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .error {
-            color: red;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        .success {
-            color: green;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .list-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border: 1px solid #ddd;
-            margin-bottom: 5px;
-            border-radius: 5px;
-        }
-        .filters {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .quantity-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .quantity-control button {
-            width: 40px;
-            height: 40px;
-            font-size: 18px;
-        }
-        .chart-container {
-            margin-top: 30px;
-            height: 400px;
-        }
-        .management-section {
-            margin-top: 20px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
+        body { background-color: #f8f9fa; }
+        .card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .nav-pills .nav-link.active { background-color: #0d6efd; }
     </style>
 </head>
 <body>
-    <div id="loginPage" class="login-container">
-        <h2>Inicio de Sesión</h2>
-        <div class="form-group">
-            <label>Correo Electrónico</label>
-            <input type="email" id="email" placeholder="correo@ejemplo.com" style="width: 100%;">
+
+<div class="container my-4">
+    <h2 class="text-center mb-4"><i class="fa-solid fa-print me-2"></i>Gestión de Stock de Tóners e Impresoras</h2>
+
+    <!-- Navegación por Pestañas -->
+    <ul class="nav nav-pills nav-justified mb-4" id="mainTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="movimientos-tab" data-bs-toggle="pill" data-bs-target="#movimientos" type="button"><i class="fa-solid fa-arrows-rotate me-2"></i>Entradas / Salidas</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="impresoras-tab" data-bs-toggle="pill" data-bs-target="#impresoras" type="button"><i class="fa-solid fa-box-archive me-2"></i>Impresoras y Tóners</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="deptos-tab" data-bs-toggle="pill" data-bs-target="#deptos" type="button"><i class="fa-solid fa-building me-2"></i>Departamentos</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="stats-tab" data-bs-toggle="pill" data-bs-target="#stats" type="button"><i class="fa-solid fa-chart-line me-2"></i>Estadísticas y Duración</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabContent">
+
+        <!-- PESTAÑA 1: MOVIMIENTOS (Entradas / Salidas) -->
+        <div class="tab-pane fade show active" id="movimientos" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card p-3">
+                        <h5 class="card-title"><i class="fa-solid fa-plus-minus me-2"></i>Registrar Movimiento</h5>
+                        <form id="formMovimiento">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Movimiento</label>
+                                <select class="form-select" id="movTipo" required onchange="toggleDeptoSelect()">
+                                    <option value="ENTRADA">Entrada (Ingreso al Stock)</option>
+                                    <option value="SALIDA">Salida (Asignación a Depto)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Modelo de Tóner</label>
+                                <select class="form-select" id="movToner" required></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Cantidad</label>
+                                <input type="number" min="1" class="form-control" id="movCantidad" value="1" required>
+                            </div>
+                            <div class="mb-3" id="groupDepto" style="display: none;">
+                                <label class="form-label">Departamento Destino</label>
+                                <select class="form-select" id="movDepto"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Fecha</label>
+                                <input type="date" class="form-control" id="movFecha" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Guardar Movimiento</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">Historial de Movimientos</h5>
+                            <div class="d-flex gap-2">
+                                <input type="date" class="form-control form-control-sm" id="filtroFechaInicio">
+                                <input type="date" class="form-control form-control-sm" id="filtroFechaFin">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="cargarMovimientos()"><i class="fa-solid fa-filter"></i></button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Tipo</th>
+                                        <th>Tóner</th>
+                                        <th>Cant.</th>
+                                        <th>Departamento</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaMovimientos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Contraseña</label>
-            <input type="password" id="password" placeholder="********" style="width: 100%;">
+
+        <!-- PESTAÑA 2: IMPRESORAS Y TÓNERS -->
+        <div class="tab-pane fade" id="impresoras" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card p-3">
+                        <h5 class="card-title"><i class="fa-solid fa-plus me-2"></i>Nueva Impresora y Tóner</h5>
+                        <form id="formImpresora">
+                            <div class="mb-3">
+                                <label class="form-label">Marca / Modelo Impresora</label>
+                                <input type="text" class="form-control" id="impModelo" placeholder="Ej: HP LaserJet Pro M404" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Modelo de Tóner Compatible</label>
+                                <input type="text" class="form-control" id="tonerModelo" placeholder="Ej: HP 58A (CF258A)" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Stock Inicial de Tóner</label>
+                                <input type="number" min="0" class="form-control" id="tonerStockInicial" value="0" required>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">Guardar Impresora/Tóner</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card p-3">
+                        <h5 class="card-title">Inventario de Tóners y Equipos</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Impresora</th>
+                                        <th>Modelo Tóner</th>
+                                        <th>Stock Actual</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaImpresoras"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <button onclick="login()" style="width: 100%;">Iniciar Sesión</button>
-        <div id="loginError" class="error" style="margin-top: 10px;"></div>
+
+        <!-- PESTAÑA 3: DEPARTAMENTOS -->
+        <div class="tab-pane fade" id="deptos" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card p-3">
+                        <h5 class="card-title"><i class="fa-solid fa-building-circle-check me-2"></i>Agregar Departamento</h5>
+                        <form id="formDepto">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre del Departamento</label>
+                                <input type="text" class="form-control" id="deptoNombre" placeholder="Ej: Recursos Humanos" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Impresora Asignada</label>
+                                <select class="form-select" id="deptoImpresora" required></select>
+                            </div>
+                            <button type="submit" class="btn btn-info text-white w-100">Registrar Departamento</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card p-3">
+                        <h5 class="card-title">Departamentos e Impresoras</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Departamento</th>
+                                        <th>Impresora Asignada</th>
+                                        <th>Tóner que Utiliza</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaDeptos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 4: ESTADÍSTICAS Y DURACIÓN -->
+        <div class="tab-pane fade" id="stats" role="tabpanel">
+            <div class="card p-3">
+                <h5 class="card-title"><i class="fa-solid fa-clock-rotate-left me-2"></i>Estimación de Duración de Tóner por Departamento</h5>
+                <p class="text-muted small">Muestra el promedio en días transcurridos entre cada entrega de tóner para el mismo departamento.</p>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Departamento</th>
+                                <th>Tóner</th>
+                                <th>Total Cambios</th>
+                                <th>Último Cambio</th>
+                                <th>Duración Promedio Estimada</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaStats"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
+</div>
 
-    <div id="mainApp" class="container" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1>Sistema de Gestión de Impresoras</h1>
-            <button onclick="logout()" class="btn-danger">Cerrar Sesión</button>
-        </div>
+<!-- Firebase SDKs (Compat JS) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-        <div class="tabs">
-            <div class="tab active" onclick="showTab(1)">Formulario Impresoras</div>
-            <div class="tab" onclick="showTab(2)">Impresoras/Toner/Departamentos</div>
-            <div class="tab" onclick="showTab(3)">Cantidad Toner</div>
-            <div class="tab" onclick="showTab(4)">Reportes</div>
-        </div>
+<script>
+    // =========================================================================
+    // CONFIGURACIÓN DE TU PROYECTO FIREBASE
+    // =========================================================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyCOThPg4aLZGm5gaXDK3taT-OfCZtI6zS4",
+        authDomain: "impresoras-66b61.firebaseapp.com",
+        databaseURL: "https://impresoras-66b61-default-rtdb.firebaseio.com",
+        projectId: "impresoras-66b61",
+        storageBucket: "impresoras-66b61.firebasestorage.app",
+        messagingSenderId: "782120345048",
+        appId: "1:782120345048:web:45ba532c20a5845ea026ad"
+    };
 
-        <!-- Pestaña 1: Formulario Impresoras -->
-        <div id="tab1" class="tab-content active">
-            <h2>Formulario de Registro de Impresoras</h2>
-            <form id="formImpresora" onsubmit="return false;">
-                <div class="form-group">
-                    <label>ID:</label>
-                    <input type="number" id="id" readonly style="background: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>Impresora:</label>
-                    <select id="impresora" required>
-                        <option value="">Seleccione una impresora</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Toner:</label>
-                    <select id="toner" required onchange="cargarCantidadActual()">
-                        <option value="">Seleccione un toner</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Cantidad Actual:</label>
-                    <input type="number" id="cantidadActual" readonly style="background: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>Precio de Toner:</label>
-                    <input type="number" id="precio" required step="0.01" min="0">
-                </div>
-                <div class="form-group">
-                    <label>Departamento:</label>
-                    <select id="departamento" required>
-                        <option value="">Seleccione un departamento</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Fecha:</label>
-                    <input type="date" id="fecha" required>
-                </div>
-                <button type="button" onclick="aceptarFormulario()" class="btn-success">Aceptar</button>
-                <div id="formError" class="error"></div>
-                <div id="formSuccess" class="success"></div>
-            </form>
-        </div>
+    // Inicializar Firebase y Firestore
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-        <!-- Pestaña 2: Gestión de Listas -->
-        <div id="tab2" class="tab-content">
-            <h2>Gestión de Catálogos</h2>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button onclick="mostrarGestion('impresoras')">Gestionar Impresoras</button>
-                <button onclick="mostrarGestion('toners')">Gestionar Toners</button>
-                <button onclick="mostrarGestion('departamentos')">Gestionar Departamentos</button>
-            </div>
-            
-            <div id="gestionImpresoras" class="management-section" style="display: none;">
-                <h3>Gestión de Impresoras</h3>
-                <div class="form-group">
-                    <label>Nueva Impresora:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="nuevaImpresora" placeholder="Nombre de la impresora" style="flex: 1;">
-                        <button onclick="agregarItem('impresoras')">Agregar</button>
-                    </div>
-                </div>
-                <div id="listaImpresoras"></div>
-            </div>
-            
-            <div id="gestionToners" class="management-section" style="display: none;">
-                <h3>Gestión de Toners</h3>
-                <div class="form-group">
-                    <label>Nuevo Toner:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="nuevoToner" placeholder="Nombre del toner" style="flex: 1;">
-                        <button onclick="agregarItem('toners')">Agregar</button>
-                    </div>
-                </div>
-                <div id="listaToners"></div>
-            </div>
-            
-            <div id="gestionDepartamentos" class="management-section" style="display: none;">
-                <h3>Gestión de Departamentos</h3>
-                <div class="form-group">
-                    <label>Nuevo Departamento:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="nuevoDepartamento" placeholder="Nombre del departamento" style="flex: 1;">
-                        <button onclick="agregarItem('departamentos')">Agregar</button>
-                    </div>
-                </div>
-                <div id="listaDepartamentos"></div>
-            </div>
-        </div>
+    // Fecha predeterminada de hoy en inputs
+    document.getElementById('movFecha').value = new Date().toISOString().split('T')[0];
 
-        <!-- Pestaña 3: Cantidad Toner -->
-        <div id="tab3" class="tab-content">
-            <h2>Control de Cantidad de Toner</h2>
-            <div class="form-group">
-                <label>Toner:</label>
-                <select id="tonerCantidad" onchange="cargarCantidadToner()">
-                    <option value="">Seleccione un toner</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Cantidad Actual:</label>
-                <div class="quantity-control">
-                    <button type="button" onclick="ajustarCantidad(-1)">-</button>
-                    <input type="number" id="cantidadToner" value="0" readonly style="width: 80px; text-align: center;">
-                    <button type="button" onclick="ajustarCantidad(1)">+</button>
-                </div>
-            </div>
-            <button onclick="guardarCantidadToner()" class="btn-success">Guardar Cambios</button>
-            <div id="tonerError" class="error"></div>
-            <div id="tonerSuccess" class="success"></div>
-        </div>
+    // Variables de caché local
+    let listaImpresoras = [];
+    let listaDeptos = [];
 
-        <!-- Pestaña 4: Reportes -->
-        <div id="tab4" class="tab-content">
-            <h2>Reportes y Estadísticas</h2>
-            <div style="margin-bottom: 20px;">
-                <button onclick="exportarExcel()" class="btn-success">Exportar a Excel</button>
-                <button onclick="exportarJSON()" style="background: #17a2b8;">Exportar a JSON</button>
-                <button onclick="document.getElementById('importFile').click()" style="background: #ffc107; color: black;">Importar JSON</button>
-                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importarJSON(event)">
-            </div>
-            
-            <h3>Filtros</h3>
-            <div class="filters">
-                <div>
-                    <label>Departamento:</label>
-                    <select id="filtroDepartamento" onchange="actualizarGrafico()">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Impresora:</label>
-                    <select id="filtroImpresora" onchange="actualizarGrafico()">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Toner:</label>
-                    <select id="filtroToner" onchange="actualizarGrafico()">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Fecha Desde:</label>
-                    <input type="date" id="filtroFechaDesde" onchange="actualizarGrafico()">
-                </div>
-                <div>
-                    <label>Fecha Hasta:</label>
-                    <input type="date" id="filtroFechaHasta" onchange="actualizarGrafico()">
-                </div>
-                <div>
-                    <label>Condición Precio:</label>
-                    <select id="filtroPrecioCondicion" onchange="actualizarGrafico()">
-                        <option value="">Sin filtro</option>
-                        <option value="=">Igual a</option>
-                        <option value=">">Mayor que</option>
-                        <option value="<">Menor que</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Valor Precio:</label>
-                    <input type="number" id="filtroPrecioValor" onchange="actualizarGrafico()">
-                </div>
-            </div>
-            
-            <div class="chart-container">
-                <canvas id="reporteChart"></canvas>
-            </div>
-            
-            <h3>Registros</h3>
-            <div id="registrosTable" style="overflow-x: auto;"></div>
-        </div>
-    </div>
+    // Carga inicial
+    window.addEventListener('DOMContentLoaded', () => {
+        escucharImpresoras();
+        escucharDeptos();
+        cargarMovimientos();
+    });
 
-    <script>
-        // Configuración de Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyCOThPg4aLZGm5gaXDK3taT-OfCZtI6zS4",
-            authDomain: "impresoras-66b61.firebaseapp.com",
-            databaseURL: "https://impresoras-66b61-default-rtdb.firebaseio.com",
-            projectId: "impresoras-66b61",
-            storageBucket: "impresoras-66b61.firebasestorage.app",
-            messagingSenderId: "782120345048",
-            appId: "1:782120345048:web:45ba532c20a5845ea026ad"
-        };
+    function toggleDeptoSelect() {
+        const tipo = document.getElementById('movTipo').value;
+        const groupDepto = document.getElementById('groupDepto');
+        groupDepto.style.display = (tipo === 'SALIDA') ? 'block' : 'none';
+    }
 
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
+    // --- 1. IMPRESORAS Y TÓNERS ---
+    function escucharImpresoras() {
+        db.collection('impresoras').onSnapshot(snapshot => {
+            listaImpresoras = [];
+            const tbody = document.getElementById('tablaImpresoras');
+            const selectMovToner = document.getElementById('movToner');
+            const selectDeptoImp = document.getElementById('deptoImpresora');
 
-        // Variables globales
-        let miChart = null;
+            tbody.innerHTML = '';
+            selectMovToner.innerHTML = '<option value="">Seleccione Tóner...</option>';
+            selectDeptoImp.innerHTML = '<option value="">Seleccione Impresora...</option>';
 
-        // Autenticación
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                document.getElementById('loginPage').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-                inicializarDatos();
-            } else {
-                document.getElementById('loginPage').style.display = 'block';
-                document.getElementById('mainApp').style.display = 'none';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                data.id = doc.id;
+                listaImpresoras.push(data);
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${data.modeloImp}</strong></td>
+                        <td>${data.modeloToner}</td>
+                        <td><span class="badge ${data.stock > 2 ? 'bg-success' : 'bg-danger'} fs-6">${data.stock} ud(s)</span></td>
+                    </tr>
+                `;
+
+                selectMovToner.innerHTML += `<option value="${data.id}">${data.modeloToner} (${data.modeloImp}) - Stock: ${data.stock}</option>`;
+                selectDeptoImp.innerHTML += `<option value="${data.id}">${data.modeloImp} [Tóner: ${data.modeloToner}]</option>`;
+            });
+        });
+    }
+
+    document.getElementById('formImpresora').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const modeloImp = document.getElementById('impModelo').value.trim();
+        const modeloToner = document.getElementById('tonerModelo').value.trim();
+        const stock = parseInt(document.getElementById('tonerStockInicial').value) || 0;
+
+        try {
+            await db.collection('impresoras').add({ modeloImp, modeloToner, stock });
+            document.getElementById('formImpresora').reset();
+            alert('Impresora y Tóner agregados con éxito.');
+        } catch (err) {
+            console.error(err);
+            alert('Error al guardar en Firestore.');
+        }
+    });
+
+    // --- 2. DEPARTAMENTOS ---
+    function escucharDeptos() {
+        db.collection('departamentos').onSnapshot(snapshot => {
+            listaDeptos = [];
+            const tbody = document.getElementById('tablaDeptos');
+            const selectMovDepto = document.getElementById('movDepto');
+
+            tbody.innerHTML = '';
+            selectMovDepto.innerHTML = '<option value="">Seleccione Departamento...</option>';
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                data.id = doc.id;
+                listaDeptos.push(data);
+
+                const impAsignada = listaImpresoras.find(i => i.id === data.impresoraId);
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${data.nombre}</strong></td>
+                        <td>${impAsignada ? impAsignada.modeloImp : 'No asignada'}</td>
+                        <td>${impAsignada ? impAsignada.modeloToner : 'N/A'}</td>
+                    </tr>
+                `;
+
+                selectMovDepto.innerHTML += `<option value="${data.id}">${data.nombre}</option>`;
+            });
+            generarEstadisticas();
+        });
+    }
+
+    document.getElementById('formDepto').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = document.getElementById('deptoNombre').value.trim();
+        const impresoraId = document.getElementById('deptoImpresora').value;
+
+        try {
+            await db.collection('departamentos').add({ nombre, impresoraId });
+            document.getElementById('formDepto').reset();
+            alert('Departamento registrado con éxito.');
+        } catch (err) {
+            console.error(err);
+            alert('Error al guardar el departamento.');
+        }
+    });
+
+    // --- 3. MOVIMIENTOS Y ACTUALIZACIÓN DE STOCK ---
+    document.getElementById('formMovimiento').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const tipo = document.getElementById('movTipo').value;
+        const impresoraId = document.getElementById('movToner').value;
+        const cantidad = parseInt(document.getElementById('movCantidad').value);
+        const deptoId = (tipo === 'SALIDA') ? document.getElementById('movDepto').value : '';
+        const fecha = document.getElementById('movFecha').value;
+
+        if (!impresoraId) return alert('Seleccione un Tóner');
+        if (tipo === 'SALIDA' && !deptoId) return alert('Seleccione el Departamento Destino');
+
+        const equipo = listaImpresoras.find(i => i.id === impresoraId);
+        const depto = listaDeptos.find(d => d.id === deptoId);
+
+        if (tipo === 'SALIDA' && equipo.stock < cantidad) {
+            return alert(`Stock insuficiente. Quedan solo ${equipo.stock} unidad(es).`);
+        }
+
+        try {
+            // Guardar registro
+            await db.collection('movimientos').add({
+                tipo,
+                impresoraId,
+                tonerModelo: equipo.modeloToner,
+                cantidad,
+                deptoId,
+                deptoNombre: depto ? depto.nombre : 'Almacén Central',
+                fecha
+            });
+
+            // Ajustar stock en la colección de impresoras
+            const nuevoStock = (tipo === 'ENTRADA') ? equipo.stock + cantidad : equipo.stock - cantidad;
+            await db.collection('impresoras').doc(impresoraId).update({ stock: nuevoStock });
+
+            document.getElementById('formMovimiento').reset();
+            document.getElementById('movFecha').value = new Date().toISOString().split('T')[0];
+            toggleDeptoSelect();
+            cargarMovimientos();
+            alert('Movimiento registrado correctamente.');
+        } catch (err) {
+            console.error(err);
+            alert('Error al registrar el movimiento.');
+        }
+    });
+
+    // --- 4. HISTORIAL Y FILTROS ---
+    function cargarMovimientos() {
+        const fechaInicio = document.getElementById('filtroFechaInicio').value;
+        const fechaFin = document.getElementById('filtroFechaFin').value;
+
+        db.collection('movimientos').orderBy('fecha', 'desc').get().then(snapshot => {
+            const tbody = document.getElementById('tablaMovimientos');
+            tbody.innerHTML = '';
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+
+                if (fechaInicio && data.fecha < fechaInicio) return;
+                if (fechaFin && data.fecha > fechaFin) return;
+
+                const badgeClass = data.tipo === 'ENTRADA' ? 'bg-success' : 'bg-warning text-dark';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${data.fecha}</td>
+                        <td><span class="badge ${badgeClass}">${data.tipo}</span></td>
+                        <td>${data.tonerModelo}</td>
+                        <td>${data.cantidad}</td>
+                        <td>${data.deptoNombre}</td>
+                    </tr>
+                `;
+            });
+
+            generarEstadisticas();
+        });
+    }
+
+    // --- 5. ESTADÍSTICAS Y CÁLCULO DE DURACIÓN ---
+    async function generarEstadisticas() {
+        const snapshot = await db.collection('movimientos').where('tipo', '==', 'SALIDA').orderBy('fecha', 'asc').get();
+        const salidasPorDepto = {};
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (!salidasPorDepto[data.deptoId]) {
+                salidasPorDepto[data.deptoId] = [];
             }
+            salidasPorDepto[data.deptoId].push(new Date(data.fecha));
         });
 
-        function login() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            if (!email || !password) {
-                document.getElementById('loginError').textContent = 'Por favor ingrese email y contraseña';
-                return;
+        const tbody = document.getElementById('tablaStats');
+        tbody.innerHTML = '';
+
+        listaDeptos.forEach(depto => {
+            const fechas = salidasPorDepto[depto.id] || [];
+            const impAsignada = listaImpresoras.find(i => i.id === depto.impresoraId);
+            const modeloToner = impAsignada ? impAsignada.modeloToner : 'N/A';
+
+            let duracionPromedioStr = 'Sin datos suficientes';
+            let ultimoCambioStr = 'Sin registros';
+
+            if (fechas.length > 0) {
+                ultimoCambioStr = fechas[fechas.length - 1].toISOString().split('T')[0];
             }
-            
-            auth.signInWithEmailAndPassword(email, password)
-                .catch((error) => {
-                    document.getElementById('loginError').textContent = 'Error: ' + error.message;
-                });
-        }
 
-        function logout() {
-            auth.signOut();
-        }
-
-        // Inicialización de datos
-        function inicializarDatos() {
-            // Verificar y crear estructuras iniciales
-            database.ref('catalogos').once('value', (snapshot) => {
-                if (!snapshot.exists()) {
-                    const datosIniciales = {
-                        impresoras: ['HP LaserJet', 'Epson WorkForce', 'Canon imageCLASS'],
-                        toners: {
-                            'HP LaserJet': 10,
-                            'Epson WorkForce': 5,
-                            'Canon imageCLASS': 8
-                        },
-                        departamentos: ['Ventas', 'Marketing', 'IT', 'RRHH', 'Finanzas']
-                    };
-                    database.ref('catalogos').set(datosIniciales);
+            if (fechas.length > 1) {
+                let totalDias = 0;
+                for (let i = 1; i < fechas.length; i++) {
+                    const diffTime = Math.abs(fechas[i] - fechas[i - 1]);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    totalDias += diffDays;
                 }
-            });
-
-            // Obtener último ID
-            database.ref('registros').once('value', (snapshot) => {
-                let maxId = 0;
-                if (snapshot.exists()) {
-                    snapshot.forEach((child) => {
-                        const id = child.val().id;
-                        if (id > maxId) maxId = id;
-                    });
-                }
-                document.getElementById('id').value = maxId + 1;
-            });
-
-            // Inicializar fecha actual
-            const hoy = new Date().toISOString().split('T')[0];
-            document.getElementById('fecha').value = hoy;
-
-            cargarListas();
-        }
-
-        // Función para mostrar pestañas
-        function showTab(numero) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            document.querySelectorAll('.tab')[numero - 1].classList.add('active');
-            document.getElementById(`tab${numero}`).classList.add('active');
-            
-            if (numero === 4) {
-                cargarRegistros();
-                cargarFiltros();
-            }
-        }
-
-        // Gestión de listas
-        function mostrarGestion(tipo) {
-            document.getElementById('gestionImpresoras').style.display = 'none';
-            document.getElementById('gestionToners').style.display = 'none';
-            document.getElementById('gestionDepartamentos').style.display = 'none';
-            
-            document.getElementById(`gestion${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`).style.display = 'block';
-            cargarListaItems(tipo);
-        }
-
-        function cargarListaItems(tipo) {
-            database.ref(`catalogos/${tipo}`).once('value', (snapshot) => {
-                let html = '';
-                const items = snapshot.val() || [];
-                
-                if (tipo === 'toners') {
-                    // Los toners son un objeto con cantidades
-                    Object.keys(items).forEach((item) => {
-                        html += `<div class="list-item">
-                            <span>${item} (Stock: ${items[item]})</span>
-                            <div>
-                                <button onclick="editarItem('${tipo}', '${item.replace(/'/g, "\\'")}')">Editar</button>
-                                <button class="btn-danger" onclick="eliminarItem('${tipo}', '${item.replace(/'/g, "\\'")}')">Eliminar</button>
-                            </div>
-                        </div>`;
-                    });
-                } else {
-                    // Impresoras y departamentos son arrays
-                    items.forEach((item) => {
-                        html += `<div class="list-item">
-                            <span>${item}</span>
-                            <div>
-                                <button onclick="editarItem('${tipo}', '${item.replace(/'/g, "\\'")}')">Editar</button>
-                                <button class="btn-danger" onclick="eliminarItem('${tipo}', '${item.replace(/'/g, "\\'")}')">Eliminar</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-                
-                const listaElement = document.getElementById(`lista${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
-                if (listaElement) {
-                    listaElement.innerHTML = html;
-                }
-            });
-        }
-
-        function agregarItem(tipo) {
-            let inputId;
-            let valor;
-            
-            if (tipo === 'impresoras') {
-                inputId = 'nuevaImpresora';
-            } else if (tipo === 'toners') {
-                inputId = 'nuevoToner';
-            } else if (tipo === 'departamentos') {
-                inputId = 'nuevoDepartamento';
-            }
-            
-            valor = document.getElementById(inputId).value.trim();
-            
-            if (!valor) {
-                alert('El valor no puede estar vacío');
-                return;
+                const promedio = Math.round(totalDias / (fechas.length - 1));
+                duracionPromedioStr = `~ ${promedio} días por tóner`;
+            } else if (fechas.length === 1) {
+                duracionPromedioStr = 'Requiere al menos 2 entregas';
             }
 
-            database.ref(`catalogos/${tipo}`).once('value', (snapshot) => {
-                let items = snapshot.val() || {};
-                
-                if (tipo === 'toners') {
-                    // Para toners, es un objeto
-                    if (!items[valor]) {
-                        items[valor] = 0; // Stock inicial 0
-                    } else {
-                        alert('Este toner ya existe');
-                        return;
-                    }
-                } else {
-                    // Para impresoras y departamentos, son arrays
-                    if (!Array.isArray(items)) {
-                        items = [];
-                    }
-                    if (!items.includes(valor)) {
-                        items.push(valor);
-                    } else {
-                        alert('Este elemento ya existe');
-                        return;
-                    }
-                }
-                
-                database.ref(`catalogos/${tipo}`).set(items).then(() => {
-                    document.getElementById(inputId).value = '';
-                    cargarListaItems(tipo);
-                    cargarListas(); // Actualizar todos los selectores
-                }).catch((error) => {
-                    console.error('Error al guardar:', error);
-                    alert('Error al guardar: ' + error.message);
-                });
-            });
-        }
-
-        function editarItem(tipo, valorAntiguo) {
-            const nuevoValor = prompt('Editar valor:', valorAntiguo);
-            if (nuevoValor && nuevoValor !== valorAntiguo) {
-                database.ref(`catalogos/${tipo}`).once('value', (snapshot) => {
-                    let items = snapshot.val();
-                    
-                    if (tipo === 'toners') {
-                        // Para toners, mantener la cantidad
-                        const cantidad = items[valorAntiguo];
-                        delete items[valorAntiguo];
-                        items[nuevoValor] = cantidad;
-                    } else {
-                        // Para arrays, reemplazar el elemento
-                        const index = items.indexOf(valorAntiguo);
-                        if (index !== -1) {
-                            items[index] = nuevoValor;
-                        }
-                    }
-                    
-                    database.ref(`catalogos/${tipo}`).set(items).then(() => {
-                        cargarListaItems(tipo);
-                        cargarListas();
-                    });
-                });
-            }
-        }
-
-        function eliminarItem(tipo, valor) {
-            if (confirm(`¿Está seguro de eliminar ${valor}?`)) {
-                database.ref(`catalogos/${tipo}`).once('value', (snapshot) => {
-                    let items = snapshot.val();
-                    
-                    if (tipo === 'toners') {
-                        delete items[valor];
-                    } else {
-                        const index = items.indexOf(valor);
-                        if (index !== -1) {
-                            items.splice(index, 1);
-                        }
-                    }
-                    
-                    database.ref(`catalogos/${tipo}`).set(items).then(() => {
-                        cargarListaItems(tipo);
-                        cargarListas();
-                    });
-                });
-            }
-        }
-
-        // Cargar listas en formularios
-        function cargarListas() {
-            // Cargar impresoras
-            database.ref('catalogos/impresoras').once('value', (snapshot) => {
-                const impresoras = snapshot.val() || [];
-                let html = '<option value="">Seleccione una impresora</option>';
-                impresoras.forEach(imp => {
-                    html += `<option value="${imp}">${imp}</option>`;
-                });
-                document.getElementById('impresora').innerHTML = html;
-                
-                // Actualizar filtro de impresoras
-                let filtroHtml = '<option value="">Todos</option>';
-                impresoras.forEach(imp => {
-                    filtroHtml += `<option value="${imp}">${imp}</option>`;
-                });
-                const filtroImpresora = document.getElementById('filtroImpresora');
-                if (filtroImpresora) filtroImpresora.innerHTML = filtroHtml;
-            });
-
-            // Cargar toners
-            database.ref('catalogos/toners').once('value', (snapshot) => {
-                const toners = snapshot.val() || {};
-                let html = '<option value="">Seleccione un toner</option>';
-                let htmlCantidad = '<option value="">Seleccione un toner</option>';
-                let htmlFiltro = '<option value="">Todos</option>';
-                
-                Object.keys(toners).forEach(toner => {
-                    html += `<option value="${toner}">${toner}</option>`;
-                    htmlCantidad += `<option value="${toner}">${toner}</option>`;
-                    htmlFiltro += `<option value="${toner}">${toner}</option>`;
-                });
-                
-                document.getElementById('toner').innerHTML = html;
-                document.getElementById('tonerCantidad').innerHTML = htmlCantidad;
-                
-                const filtroToner = document.getElementById('filtroToner');
-                if (filtroToner) filtroToner.innerHTML = htmlFiltro;
-            });
-
-            // Cargar departamentos
-            database.ref('catalogos/departamentos').once('value', (snapshot) => {
-                const deptos = snapshot.val() || [];
-                let html = '<option value="">Seleccione un departamento</option>';
-                let htmlFiltro = '<option value="">Todos</option>';
-                deptos.forEach(depto => {
-                    html += `<option value="${depto}">${depto}</option>`;
-                    htmlFiltro += `<option value="${depto}">${depto}</option>`;
-                });
-                document.getElementById('departamento').innerHTML = html;
-                
-                const filtroDepartamento = document.getElementById('filtroDepartamento');
-                if (filtroDepartamento) filtroDepartamento.innerHTML = htmlFiltro;
-            });
-        }
-
-        // Cargar cantidad actual del toner seleccionado
-        function cargarCantidadActual() {
-            const toner = document.getElementById('toner').value;
-            if (toner) {
-                database.ref('catalogos/toners/' + toner).once('value', (snapshot) => {
-                    document.getElementById('cantidadActual').value = snapshot.val() || 0;
-                });
-            } else {
-                document.getElementById('cantidadActual').value = '';
-            }
-        }
-
-        // Aceptar formulario
-        function aceptarFormulario() {
-            const id = document.getElementById('id').value;
-            const impresora = document.getElementById('impresora').value;
-            const toner = document.getElementById('toner').value;
-            const precio = document.getElementById('precio').value;
-            const departamento = document.getElementById('departamento').value;
-            const fecha = document.getElementById('fecha').value;
-
-            if (!impresora || !toner || !precio || !departamento || !fecha) {
-                document.getElementById('formError').textContent = 'Todos los campos son obligatorios';
-                return;
-            }
-
-            database.ref('catalogos/toners/' + toner).once('value', (snapshot) => {
-                const cantidadActual = snapshot.val() || 0;
-                
-                if (cantidadActual <= 0) {
-                    document.getElementById('formError').textContent = 'No hay suficientes toner';
-                    return;
-                }
-
-                // Restar 1 a la cantidad
-                database.ref('catalogos/toners/' + toner).set(cantidadActual - 1).then(() => {
-                    // Guardar registro
-                    const registro = {
-                        id: parseInt(id),
-                        impresora,
-                        toner,
-                        precio: parseFloat(precio),
-                        departamento,
-                        fecha,
-                        timestamp: new Date().toISOString()
-                    };
-
-                    database.ref('registros/' + id).set(registro).then(() => {
-                        document.getElementById('formSuccess').textContent = 'Registro guardado exitosamente';
-                        document.getElementById('formError').textContent = '';
-                        
-                        // Actualizar ID
-                        database.ref('registros').once('value', (snap) => {
-                            let maxId = 0;
-                            snap.forEach((child) => {
-                                const idReg = child.val().id;
-                                if (idReg > maxId) maxId = idReg;
-                            });
-                            document.getElementById('id').value = maxId + 1;
-                        });
-                        
-                        // Limpiar campos
-                        document.getElementById('impresora').value = '';
-                        document.getElementById('toner').value = '';
-                        document.getElementById('cantidadActual').value = '';
-                        document.getElementById('precio').value = '';
-                        document.getElementById('departamento').value = '';
-                        
-                        // Actualizar listas
-                        cargarListas();
-                        
-                        setTimeout(() => {
-                            document.getElementById('formSuccess').textContent = '';
-                        }, 3000);
-                    });
-                });
-            });
-        }
-
-        // Control de cantidad de toner
-        function cargarCantidadToner() {
-            const toner = document.getElementById('tonerCantidad').value;
-            if (toner) {
-                database.ref('catalogos/toners/' + toner).once('value', (snapshot) => {
-                    document.getElementById('cantidadToner').value = snapshot.val() || 0;
-                });
-            } else {
-                document.getElementById('cantidadToner').value = 0;
-            }
-        }
-
-        function ajustarCantidad(valor) {
-            const cantidad = parseInt(document.getElementById('cantidadToner').value) || 0;
-            const nuevaCantidad = Math.max(0, cantidad + valor);
-            document.getElementById('cantidadToner').value = nuevaCantidad;
-        }
-
-        function guardarCantidadToner() {
-            const toner = document.getElementById('tonerCantidad').value;
-            const cantidad = parseInt(document.getElementById('cantidadToner').value) || 0;
-            
-            if (!toner) {
-                document.getElementById('tonerError').textContent = 'Seleccione un toner';
-                return;
-            }
-
-            database.ref('catalogos/toners/' + toner).set(cantidad).then(() => {
-                document.getElementById('tonerSuccess').textContent = 'Cantidad actualizada exitosamente';
-                document.getElementById('tonerError').textContent = '';
-                cargarListas();
-                cargarCantidadActual();
-                
-                setTimeout(() => {
-                    document.getElementById('tonerSuccess').textContent = '';
-                }, 3000);
-            });
-        }
-
-        // Reportes
-        function cargarRegistros() {
-            database.ref('registros').once('value', (snapshot) => {
-                let html = '<table><tr><th>ID</th><th>Impresora</th><th>Toner</th><th>Precio</th><th>Departamento</th><th>Fecha</th></tr>';
-                
-                if (snapshot.exists()) {
-                    snapshot.forEach((child) => {
-                        const reg = child.val();
-                        html += `<tr>
-                            <td>${reg.id}</td>
-                            <td>${reg.impresora}</td>
-                            <td>${reg.toner}</td>
-                            <td>$${reg.precio}</td>
-                            <td>${reg.departamento}</td>
-                            <td>${reg.fecha}</td>
-                        </tr>`;
-                    });
-                } else {
-                    html += '<tr><td colspan="6" style="text-align: center;">No hay registros</td></tr>';
-                }
-                
-                html += '</table>';
-                document.getElementById('registrosTable').innerHTML = html;
-            });
-        }
-
-        function cargarFiltros() {
-            actualizarGrafico();
-        }
-
-        function actualizarGrafico() {
-            database.ref('registros').once('value', (snapshot) => {
-                let registros = [];
-                if (snapshot.exists()) {
-                    snapshot.forEach((child) => {
-                        registros.push(child.val());
-                    });
-                }
-
-                // Aplicar filtros
-                const depto = document.getElementById('filtroDepartamento').value;
-                const impresora = document.getElementById('filtroImpresora').value;
-                const toner = document.getElementById('filtroToner').value;
-                const fechaDesde = document.getElementById('filtroFechaDesde').value;
-                const fechaHasta = document.getElementById('filtroFechaHasta').value;
-                const condPrecio = document.getElementById('filtroPrecioCondicion').value;
-                const valorPrecio = parseFloat(document.getElementById('filtroPrecioValor').value);
-
-                registros = registros.filter(reg => {
-                    if (depto && reg.departamento !== depto) return false;
-                    if (impresora && reg.impresora !== impresora) return false;
-                    if (toner && reg.toner !== toner) return false;
-                    if (fechaDesde && reg.fecha < fechaDesde) return false;
-                    if (fechaHasta && reg.fecha > fechaHasta) return false;
-                    if (condPrecio && !isNaN(valorPrecio)) {
-                        if (condPrecio === '=' && reg.precio !== valorPrecio) return false;
-                        if (condPrecio === '>' && reg.precio <= valorPrecio) return false;
-                        if (condPrecio === '<' && reg.precio >= valorPrecio) return false;
-                    }
-                    return true;
-                });
-
-                // Agrupar por toner para el gráfico
-                const grupos = {};
-                registros.forEach(reg => {
-                    if (!grupos[reg.toner]) {
-                        grupos[reg.toner] = {
-                            count: 0,
-                            total: 0
-                        };
-                    }
-                    grupos[reg.toner].count++;
-                    grupos[reg.toner].total += reg.precio;
-                });
-
-                const labels = Object.keys(grupos);
-                const datos = labels.map(l => grupos[l].count);
-                const precios = labels.map(l => grupos[l].count > 0 ? grupos[l].total / grupos[l].count : 0);
-
-                // Crear gráfico
-                const ctx = document.getElementById('reporteChart').getContext('2d');
-                
-                if (miChart) {
-                    miChart.destroy();
-                }
-
-                miChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels.length > 0 ? labels : ['Sin datos'],
-                        datasets: [{
-                            label: 'Cantidad de Registros',
-                            data: datos.length > 0 ? datos : [0],
-                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1,
-                            yAxisID: 'y'
-                        }, {
-                            label: 'Precio Promedio',
-                            data: precios.length > 0 ? precios : [0],
-                            backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            borderWidth: 1,
-                            yAxisID: 'y1'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                position: 'left',
-                                title: {
-                                    display: true,
-                                    text: 'Cantidad'
-                                }
-                            },
-                            y1: {
-                                beginAtZero: true,
-                                position: 'right',
-                                grid: {
-                                    drawOnChartArea: false
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Precio ($)'
-                                }
-                            }
-                        }
-                    }
-                });
-            });
-        }
-
-        // Exportar/Importar
-        function exportarExcel() {
-            database.ref('registros').once('value', (snapshot) => {
-                const registros = [];
-                
-                if (snapshot.exists()) {
-                    snapshot.forEach((child) => {
-                        registros.push(child.val());
-                    });
-                }
-
-                const ws = XLSX.utils.json_to_sheet(registros);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Registros');
-                XLSX.writeFile(wb, 'registros_impresoras.xlsx');
-            });
-        }
-
-        function exportarJSON() {
-            database.ref().once('value', (snapshot) => {
-                const data = snapshot.val();
-                const jsonString = JSON.stringify(data, null, 2);
-                const blob = new Blob([jsonString], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'backup_impresoras.json';
-                a.click();
-                URL.revokeObjectURL(url);
-            });
-        }
-
-        function importarJSON(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        if (confirm('¿Está seguro de importar estos datos? Se sobrescribirán los datos actuales.')) {
-                            database.ref().set(data).then(() => {
-                                alert('Datos importados exitosamente');
-                                cargarListas();
-                                cargarRegistros();
-                                inicializarDatos();
-                            }).catch((error) => {
-                                alert('Error al importar: ' + error.message);
-                            });
-                        }
-                    } catch (error) {
-                        alert('Error al importar el archivo: ' + error.message);
-                    }
-                };
-                reader.readAsText(file);
-            }
-        }
-    </script>
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${depto.nombre}</strong></td>
+                    <td>${modeloToner}</td>
+                    <td>${fechas.length} cambio(s)</td>
+                    <td>${ultimoCambioStr}</td>
+                    <td><span class="badge bg-info text-dark fs-6">${duracionPromedioStr}</span></td>
+                </tr>
+            `;
+        });
+    }
+</script>
 </body>
 </html>
